@@ -1,0 +1,511 @@
+:root {
+  color: #172033;
+  background: #f5f7fb;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(234, 241, 251, 0.85), rgba(245, 247, 251, 0) 360px),
+    #f5f7fb;
+}
+
+button,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 28px 0 44px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #4f627c;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 8px;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+h2 {
+  margin-bottom: 8px;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.subtitle {
+  max-width: 640px;
+  margin-bottom: 0;
+  color: #4d5b70;
+  font-size: 1.02rem;
+}
+
+.source-chip {
+  flex: 0 0 auto;
+  max-width: 240px;
+  border: 1px solid #c8d2df;
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: #ffffff;
+  color: #3b4758;
+  font-size: 0.83rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.control-strip {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) minmax(160px, 0.7fr) minmax(220px, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(22, 32, 51, 0.06);
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: #526178;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #fbfdff;
+  color: #172033;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.briefing-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+  margin-bottom: 16px;
+  border: 1px solid #cfdae8;
+  border-radius: 8px;
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 16px 42px rgba(22, 32, 51, 0.08);
+}
+
+.briefing-copy h2 {
+  max-width: 760px;
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  line-height: 1.08;
+}
+
+.briefing-copy p:last-child {
+  max-width: 780px;
+  margin-bottom: 0;
+  color: #39485c;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.evidence-list {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.evidence-item {
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  gap: 10px;
+  border: 1px solid #e0e7f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f9fbfe;
+}
+
+.evidence-item span {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #f59e0b;
+}
+
+.evidence-item p {
+  margin: 0;
+  color: #344256;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.next-step {
+  grid-column: 1 / -1;
+  border-left: 4px solid #0f766e;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #eefdfa;
+}
+
+.next-step strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #0f766e;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.next-step p {
+  margin-bottom: 0;
+  color: #263548;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  min-height: 140px;
+  border: 1px solid #d9e0ea;
+  border-top: 4px solid #64748b;
+  border-radius: 8px;
+  padding: 14px;
+  background: #ffffff;
+}
+
+.metric-card--positive {
+  border-top-color: #059669;
+}
+
+.metric-card--warning {
+  border-top-color: #dc2626;
+}
+
+.metric-card span {
+  display: block;
+  margin-bottom: 12px;
+  color: #526178;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-card strong {
+  display: block;
+  min-height: 38px;
+  margin-bottom: 10px;
+  color: #152033;
+  font-size: clamp(1.35rem, 3vw, 1.85rem);
+  line-height: 1.05;
+}
+
+.metric-card p {
+  margin-bottom: 0;
+  color: #59677a;
+  font-size: 0.9rem;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 16px;
+}
+
+.chart-panel {
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.chart-panel:first-child {
+  grid-row: span 2;
+}
+
+.chart-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.chart-heading h2 {
+  margin-bottom: 2px;
+}
+
+.chart-heading p {
+  margin-bottom: 0;
+  color: #66758a;
+  font-size: 0.9rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  color: #59677a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-tick,
+.chart-year {
+  fill: #66758a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chart-year.active {
+  fill: #111827;
+  font-weight: 900;
+}
+
+.bar-list,
+.change-list {
+  display: grid;
+  gap: 16px;
+}
+
+.bar-row-label,
+.change-copy {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.bar-row-label span,
+.change-copy span {
+  color: #263548;
+  font-weight: 800;
+}
+
+.bar-row-label strong,
+.change-copy strong {
+  color: #152033;
+}
+
+.change-copy small {
+  color: #66758a;
+  font-size: 0.8rem;
+}
+
+.bar-track,
+.change-track {
+  height: 12px;
+  border-radius: 999px;
+  background: #e7edf5;
+  overflow: hidden;
+}
+
+.bar-fill,
+.change-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.change-fill.up {
+  background: #059669;
+}
+
+.change-fill.down {
+  background: #dc2626;
+}
+
+.bar-row p {
+  margin: 7px 0 0;
+  color: #66758a;
+  font-size: 0.86rem;
+}
+
+.detail-panel {
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 16px;
+  background: #ffffff;
+}
+
+.detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.detail-heading h2 {
+  margin-bottom: 2px;
+}
+
+.detail-heading p,
+.detail-heading span {
+  margin: 0;
+  color: #66758a;
+  font-size: 0.86rem;
+}
+
+.detail-heading span {
+  max-width: 430px;
+  text-align: right;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-top: 1px solid #e3e9f2;
+  padding: 12px 10px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+th {
+  color: #526178;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+td {
+  color: #263548;
+  font-weight: 650;
+}
+
+.muted {
+  color: #66758a;
+  font-weight: 650;
+}
+
+@media (max-width: 920px) {
+  .topbar,
+  .detail-heading {
+    display: grid;
+  }
+
+  .source-chip,
+  .detail-heading span {
+    max-width: none;
+    text-align: left;
+  }
+
+  .control-strip,
+  .briefing-panel,
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-panel:first-child {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    width: min(100vw - 20px, 1180px);
+    padding-top: 18px;
+  }
+
+  h1 {
+    font-size: 2.2rem;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .briefing-panel,
+  .chart-panel,
+  .detail-panel,
+  .control-strip {
+    padding: 12px;
+  }
+
+  .chart-heading,
+  .bar-row-label,
+  .change-copy {
+    display: grid;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+}
