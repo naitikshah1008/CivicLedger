@@ -1,47 +1,44 @@
-import { budgetRecords, fiscalYears, fundTypes } from "../data/budgetData";
-import { FundBreakdown } from "../lib/insights";
-import { formatBillions, formatPercent, formatSignedBillions } from "../lib/format";
+import { PaymentEntity, PaymentLens, PaymentSummary } from "../data/paymentData";
+import {
+  formatCurrency,
+  formatNumber,
+  formatPercent,
+  formatShare,
+  formatSignedCurrency,
+} from "../lib/format";
 
-const fundColors = {
-  "General Fund": "#2563eb",
-  "Non-general funds": "#059669",
+const lensColors: Record<PaymentLens, string> = {
+  Vendor: "#2563eb",
+  Agency: "#0f766e",
+  Category: "#b45309",
 };
 
-export function TrendChart({ selectedYear }: { selectedYear: number }) {
+export function YearTrendChart({
+  summaries,
+  selectedYear,
+}: {
+  summaries: PaymentSummary[];
+  selectedYear: number;
+}) {
   const width = 760;
-  const height = 280;
-  const padding = { top: 24, right: 24, bottom: 40, left: 48 };
+  const height = 260;
+  const padding = { top: 24, right: 24, bottom: 42, left: 58 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
-  const totals = fiscalYears.map((year) => {
-    const total = budgetRecords
-      .filter((record) => record.fiscalYear === year)
-      .reduce((sum, record) => sum + record.amountBillions, 0);
-
-    return { year, total };
-  });
-  const maxTotal = Math.max(...totals.map((total) => total.total));
-  const barWidth = chartWidth / fiscalYears.length - 18;
+  const maxTotal = Math.max(...summaries.map((summary) => summary.totalAmount));
+  const barWidth = 120;
 
   return (
-    <section className="chart-panel" aria-label="Spending trend by fiscal year">
+    <section className="chart-panel" aria-label="Payment trend by fiscal year">
       <div className="chart-heading">
         <div>
-          <h2>Spending trend</h2>
-          <p>Stacked by fund bucket</p>
-        </div>
-        <div className="legend">
-          {fundTypes.map((fundType) => (
-            <span key={fundType}>
-              <i style={{ background: fundColors[fundType] }} />
-              {fundType}
-            </span>
-          ))}
+          <h2>Payment trend</h2>
+          <p>Workbook totals by fiscal year</p>
         </div>
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} role="img">
-        <title>Washington spending trend from fiscal year 2019 to 2025</title>
+        <title>Washington vendor payment totals for fiscal years 2022 and 2023</title>
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
           const y = padding.top + chartHeight - tick * chartHeight;
           const value = maxTotal * tick;
@@ -57,55 +54,46 @@ export function TrendChart({ selectedYear }: { selectedYear: number }) {
                 strokeDasharray={tick === 0 ? "0" : "4 5"}
               />
               <text x={8} y={y + 4} className="chart-tick">
-                {formatBillions(value)}
+                {formatCurrency(value)}
               </text>
             </g>
           );
         })}
 
-        {fiscalYears.map((year, index) => {
-          const x =
-            padding.left +
-            index * (chartWidth / fiscalYears.length) +
-            (chartWidth / fiscalYears.length - barWidth) / 2;
-          let yCursor = padding.top + chartHeight;
-          const yearRows = budgetRecords.filter(
-            (record) => record.fiscalYear === year,
-          );
+        {summaries.map((summary, index) => {
+          const laneWidth = chartWidth / summaries.length;
+          const x = padding.left + index * laneWidth + (laneWidth - barWidth) / 2;
+          const barHeight = (summary.totalAmount / maxTotal) * chartHeight;
+          const y = padding.top + chartHeight - barHeight;
 
           return (
-            <g key={year}>
-              {yearRows.map((record) => {
-                const segmentHeight =
-                  (record.amountBillions / maxTotal) * chartHeight;
-                yCursor -= segmentHeight;
-
-                return (
-                  <rect
-                    key={record.fundType}
-                    x={x}
-                    y={yCursor}
-                    width={barWidth}
-                    height={segmentHeight}
-                    rx={4}
-                    fill={fundColors[record.fundType]}
-                    opacity={year === selectedYear ? 1 : 0.68}
-                  >
-                    <title>
-                      {`FY${year} ${record.fundType}: ${formatBillions(
-                        record.amountBillions,
-                      )}`}
-                    </title>
-                  </rect>
-                );
-              })}
+            <g key={summary.fiscalYear}>
+              <rect
+                x={x}
+                y={y}
+                width={barWidth}
+                height={barHeight}
+                rx={5}
+                fill={summary.fiscalYear === selectedYear ? "#2563eb" : "#9fb0c6"}
+              >
+                <title>
+                  {`FY${summary.fiscalYear}: ${formatCurrency(
+                    summary.totalAmount,
+                  )}`}
+                </title>
+              </rect>
+              <text x={x + barWidth / 2} y={y - 8} textAnchor="middle" className="chart-value">
+                {formatCurrency(summary.totalAmount)}
+              </text>
               <text
                 x={x + barWidth / 2}
                 y={height - 14}
                 textAnchor="middle"
-                className={year === selectedYear ? "chart-year active" : "chart-year"}
+                className={
+                  summary.fiscalYear === selectedYear ? "chart-year active" : "chart-year"
+                }
               >
-                FY{String(year).slice(2)}
+                FY{summary.fiscalYear}
               </text>
             </g>
           );
@@ -115,37 +103,44 @@ export function TrendChart({ selectedYear }: { selectedYear: number }) {
   );
 }
 
-export function FundBreakdownChart({
-  breakdown,
+export function TopEntitiesChart({
+  rows,
+  lens,
 }: {
-  breakdown: FundBreakdown[];
+  rows: PaymentEntity[];
+  lens: PaymentLens;
 }) {
+  const visibleRows = rows.slice(0, 8);
+  const maxAmount = Math.max(...visibleRows.map((row) => row.amount));
+
   return (
-    <section className="chart-panel" aria-label="Fund breakdown for selected year">
+    <section className="chart-panel" aria-label={`Top ${lens.toLowerCase()} payments`}>
       <div className="chart-heading">
         <div>
-          <h2>Fund breakdown</h2>
-          <p>Share of selected year</p>
+          <h2>Top {lens.toLowerCase()} totals</h2>
+          <p>Ranked by payment amount</p>
         </div>
       </div>
 
       <div className="bar-list">
-        {breakdown.map((fund) => (
-          <div className="bar-row" key={fund.fundType}>
+        {visibleRows.map((row) => (
+          <div className="bar-row" key={`${row.lens}-${row.name}`}>
             <div className="bar-row-label">
-              <span>{fund.fundType}</span>
-              <strong>{formatBillions(fund.amountBillions)}</strong>
+              <span>{row.name}</span>
+              <strong>{formatCurrency(row.amount)}</strong>
             </div>
             <div className="bar-track">
               <div
                 className="bar-fill"
                 style={{
-                  width: `${fund.shareOfYear}%`,
-                  background: fundColors[fund.fundType],
+                  width: `${(row.amount / maxAmount) * 100}%`,
+                  background: lensColors[lens],
                 }}
               />
             </div>
-            <p>{fund.description}</p>
+            <p>
+              {formatShare(row.shareOfYear)} of year total, {formatNumber(row.recordCount)} rows
+            </p>
           </div>
         ))}
       </div>
@@ -153,14 +148,22 @@ export function FundBreakdownChart({
   );
 }
 
-export function ChangeChart({ breakdown }: { breakdown: FundBreakdown[] }) {
-  const maxChange = Math.max(
-    1,
-    ...breakdown.map((fund) => Math.abs(fund.yoyAmount ?? 0)),
-  );
+export function MovementChart({
+  rows,
+  selectedYear,
+}: {
+  rows: PaymentEntity[];
+  selectedYear: number;
+}) {
+  const movers = rows
+    .filter((row) => row.yoyAmount !== null)
+    .slice()
+    .sort((first, second) => Math.abs(second.yoyAmount ?? 0) - Math.abs(first.yoyAmount ?? 0))
+    .slice(0, 6);
+  const maxChange = Math.max(1, ...movers.map((row) => Math.abs(row.yoyAmount ?? 0)));
 
   return (
-    <section className="chart-panel" aria-label="Year over year change">
+    <section className="chart-panel" aria-label="Year over year movement">
       <div className="chart-heading">
         <div>
           <h2>What moved</h2>
@@ -168,30 +171,36 @@ export function ChangeChart({ breakdown }: { breakdown: FundBreakdown[] }) {
         </div>
       </div>
 
-      <div className="change-list">
-        {breakdown.map((fund) => {
-          const change = fund.yoyAmount ?? 0;
-          const width = `${(Math.abs(change) / maxChange) * 100}%`;
+      {movers.length === 0 ? (
+        <div className="empty-state">
+          FY{selectedYear} is the first year in the provided workbook.
+        </div>
+      ) : (
+        <div className="change-list">
+          {movers.map((row) => {
+            const change = row.yoyAmount ?? 0;
+            const width = `${(Math.abs(change) / maxChange) * 100}%`;
 
-          return (
-            <div className="change-row" key={fund.fundType}>
-              <div className="change-copy">
-                <span>{fund.fundType}</span>
-                <strong>
-                  {formatSignedBillions(fund.yoyAmount)}{" "}
-                  <small>{formatPercent(fund.yoyPercent)}</small>
-                </strong>
+            return (
+              <div className="change-row" key={`${row.lens}-${row.name}-change`}>
+                <div className="change-copy">
+                  <span>{row.name}</span>
+                  <strong>
+                    {formatSignedCurrency(row.yoyAmount)}{" "}
+                    <small>{formatPercent(row.yoyPercent)}</small>
+                  </strong>
+                </div>
+                <div className="change-track">
+                  <div
+                    className={change >= 0 ? "change-fill up" : "change-fill down"}
+                    style={{ width }}
+                  />
+                </div>
               </div>
-              <div className="change-track">
-                <div
-                  className={change >= 0 ? "change-fill up" : "change-fill down"}
-                  style={{ width }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

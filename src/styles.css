@@ -316,10 +316,15 @@ svg {
 }
 
 .chart-tick,
+.chart-value,
 .chart-year {
   fill: #66758a;
   font-size: 12px;
   font-weight: 700;
+}
+
+.chart-value {
+  fill: #263548;
 }
 
 .chart-year.active {
@@ -378,6 +383,15 @@ svg {
 
 .change-fill.down {
   background: #dc2626;
+}
+
+.empty-state {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 18px;
+  background: #f8fafc;
+  color: #59677a;
+  font-weight: 700;
 }
 
 .bar-row p {

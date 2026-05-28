@@ -1,45 +1,49 @@
 import { useMemo, useState } from "react";
-import { ChangeChart, FundBreakdownChart, TrendChart } from "./components/Charts";
+import {
+  MovementChart,
+  TopEntitiesChart,
+  YearTrendChart,
+} from "./components/Charts";
 import { MetricCard } from "./components/MetricCard";
 import {
-  FundFilter,
-  dataSource,
+  FiscalYear,
+  PaymentLens,
   fiscalYears,
-  fundTypes,
-} from "./data/budgetData";
+  paymentLenses,
+  paymentSummaries,
+  sourceWorkbookName,
+} from "./data/paymentData";
 import {
   QuestionId,
   buildInsightContext,
-  generateBudgetBriefing,
+  generatePaymentBriefing,
   questionOptions,
 } from "./lib/insights";
 import {
-  formatBillions,
+  formatCurrency,
+  formatNumber,
   formatPercent,
   formatShare,
-  formatSignedBillions,
+  formatSignedCurrency,
 } from "./lib/format";
 
 function App() {
-  const [selectedYear, setSelectedYear] = useState(
-    fiscalYears[fiscalYears.length - 1],
-  );
-  const [fundFilter, setFundFilter] = useState<FundFilter>("All funds");
-  const [questionId, setQuestionId] = useState<QuestionId>("changed-most");
+  const [selectedYear, setSelectedYear] = useState<FiscalYear>(2023);
+  const [lens, setLens] = useState<PaymentLens>("Vendor");
+  const [questionId, setQuestionId] = useState<QuestionId>("top-vendors");
 
   const context = useMemo(
-    () => buildInsightContext(selectedYear, fundFilter),
-    [selectedYear, fundFilter],
+    () => buildInsightContext(selectedYear, lens),
+    [selectedYear, lens],
   );
   const briefing = useMemo(
-    () => generateBudgetBriefing(questionId, context),
+    () => generatePaymentBriefing(questionId, context),
     [questionId, context],
   );
-
   const yoyTone =
-    context.yoyAmount === null
+    context.totalYoyAmount === null
       ? "neutral"
-      : context.yoyAmount >= 0
+      : context.totalYoyAmount >= 0
         ? "positive"
         : "warning";
 
@@ -48,13 +52,13 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Golden Analytics POC</p>
-          <h1>Golden Budget Briefing</h1>
+          <h1>Golden Vendor Payment Briefing</h1>
           <p className="subtitle">
-            Plain-English answers from Washington fiscal spending data.
+            Plain-English answers from Washington vendor payment records.
           </p>
         </div>
-        <div className="source-chip" title={dataSource}>
-          FY2019-FY2025 source snapshot
+        <div className="source-chip" title={sourceWorkbookName}>
+          FY2022-FY2023 workbook aggregate
         </div>
       </header>
 
@@ -77,7 +81,7 @@ function App() {
           Fiscal year
           <select
             value={selectedYear}
-            onChange={(event) => setSelectedYear(Number(event.target.value))}
+            onChange={(event) => setSelectedYear(Number(event.target.value) as FiscalYear)}
           >
             {[...fiscalYears].reverse().map((year) => (
               <option key={year} value={year}>
@@ -88,15 +92,14 @@ function App() {
         </label>
 
         <label>
-          Spending view
+          Show me
           <select
-            value={fundFilter}
-            onChange={(event) => setFundFilter(event.target.value as FundFilter)}
+            value={lens}
+            onChange={(event) => setLens(event.target.value as PaymentLens)}
           >
-            <option value="All funds">All funds</option>
-            {fundTypes.map((fundType) => (
-              <option key={fundType} value={fundType}>
-                {fundType}
+            {paymentLenses.map((paymentLens) => (
+              <option key={paymentLens} value={paymentLens}>
+                {paymentLens}s
               </option>
             ))}
           </select>
@@ -127,66 +130,69 @@ function App() {
 
       <section className="metrics-grid" aria-label="Key figures">
         <MetricCard
-          label="Selected spending"
-          value={formatBillions(context.selectedTotal)}
-          detail={`${formatShare(
-            context.selectedShareOfYear,
-          )} of FY${selectedYear} total`}
+          label="Total payments"
+          value={formatCurrency(context.summary.totalAmount)}
+          detail={`${formatNumber(context.summary.recordCount)} payment rows`}
+        />
+        <MetricCard
+          label="Unique vendors"
+          value={formatNumber(context.summary.vendorCount)}
+          detail={`${formatNumber(context.summary.agencyCount)} agencies in FY${selectedYear}`}
+        />
+        <MetricCard
+          label="Top agency"
+          value={context.topAgency.name}
+          detail={formatCurrency(context.topAgency.amount)}
         />
         <MetricCard
           label="Year-over-year"
-          value={formatSignedBillions(context.yoyAmount)}
-          detail={formatPercent(context.yoyPercent)}
+          value={formatSignedCurrency(context.totalYoyAmount)}
+          detail={formatPercent(context.totalYoyPercent)}
           tone={yoyTone}
-        />
-        <MetricCard
-          label="Largest fund bucket"
-          value={context.largestFund.fundType}
-          detail={`${formatBillions(context.largestFund.amountBillions)} in FY${selectedYear}`}
-        />
-        <MetricCard
-          label="Non-general share"
-          value={formatShare(context.nonGeneralShare)}
-          detail="Other state, federal, and bond funds"
         />
       </section>
 
       <section className="chart-grid">
-        <TrendChart selectedYear={selectedYear} />
-        <FundBreakdownChart breakdown={context.fundBreakdown} />
-        <ChangeChart breakdown={context.fundBreakdown} />
+        <YearTrendChart summaries={paymentSummaries} selectedYear={selectedYear} />
+        <TopEntitiesChart rows={context.selectedRows} lens={lens} />
+        <MovementChart rows={context.selectedRows} selectedYear={selectedYear} />
       </section>
 
       <section className="detail-panel">
         <div className="detail-heading">
           <div>
             <h2>Supporting rows</h2>
-            <p>Evidence behind the briefing</p>
+            <p>Top {lens.toLowerCase()} aggregates behind the briefing</p>
           </div>
-          <span>{dataSource}</span>
+          <span>
+            Source: {sourceWorkbookName}. Raw workbook is summarized into app-ready
+            aggregates.
+          </span>
         </div>
 
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Fiscal year</th>
-                <th>Fund bucket</th>
-                <th>Spending</th>
-                <th>Share of year</th>
+                <th>Rank</th>
+                <th>{lens}</th>
+                <th>Payments</th>
+                <th>Share</th>
+                <th>Rows</th>
                 <th>Change from prior year</th>
               </tr>
             </thead>
             <tbody>
-              {context.fundBreakdown.map((fund) => (
-                <tr key={fund.fundType}>
-                  <td>FY{selectedYear}</td>
-                  <td>{fund.fundType}</td>
-                  <td>{formatBillions(fund.amountBillions)}</td>
-                  <td>{formatShare(fund.shareOfYear)}</td>
+              {context.selectedRows.slice(0, 10).map((row) => (
+                <tr key={`${row.lens}-${row.name}`}>
+                  <td>{row.rank}</td>
+                  <td>{row.name}</td>
+                  <td>{formatCurrency(row.amount)}</td>
+                  <td>{formatShare(row.shareOfYear)}</td>
+                  <td>{formatNumber(row.recordCount)}</td>
                   <td>
-                    {formatSignedBillions(fund.yoyAmount)}{" "}
-                    <span className="muted">{formatPercent(fund.yoyPercent)}</span>
+                    {formatSignedCurrency(row.yoyAmount)}{" "}
+                    <span className="muted">{formatPercent(row.yoyPercent)}</span>
                   </td>
                 </tr>
               ))}
