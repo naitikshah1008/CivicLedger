@@ -27,7 +27,7 @@ It then updates:
 
 The source workbook has these main columns: fiscal year, fiscal month, agency, category, subcategory, vendor, and amount. I embedded app-ready aggregates in `src/data/paymentData.ts` instead of committing the raw 48MB workbook.
 
-Source workbook: https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg
+Source workbook: [Washington State fiscal data](https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg)
 
 ## Tech And Architecture
 
