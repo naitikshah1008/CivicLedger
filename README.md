@@ -93,11 +93,3 @@ In production, I would treat this as the model-boundary logging point and extend
 3. Prompt: "Use the provided SharePoint dataset link."
    Result: AI identified the workbook as `Vendor-Payments_2021-23.xlsx`, inspected the columns, and suggested pivoting away from the temporary aggregate budget dataset.
    Decision: I changed the app to a vendor-payment briefing, generated compact aggregates from the real workbook, and documented the raw-workbook trade-off.
-
-## Video Walkthrough Notes
-
-- Summary: I built a guided vendor-payment briefing for a non-technical public-sector user who needs fast answers from a large spreadsheet.
-- Code walkthrough: show `src/data/paymentData.ts`, `src/lib/insights.ts`, `src/lib/governance.ts`, and `src/App.tsx`.
-- Product walkthrough: show how changing the question, fiscal year, or view updates the answer, metrics, charts, and supporting rows.
-- Production discussion: explain the embedded aggregates, missing row-level drill-down, missing authentication, and AI governance gaps.
-- Mandatory AI question: explain that AI initially helped with a fund-summary app, but I redirected the implementation after inspecting the actual SharePoint workbook and seeing it was vendor-payment data.
