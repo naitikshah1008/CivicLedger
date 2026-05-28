@@ -1,25 +1,25 @@
 import {
-  BudgetRecord,
-  FundFilter,
-  FundType,
-  budgetRecords,
-  fiscalYears,
-  fundDescriptions,
-  fundTypes,
-} from "../data/budgetData";
+  FiscalYear,
+  PaymentEntity,
+  PaymentLens,
+  PaymentSummary,
+  paymentEntities,
+  paymentSummaries,
+} from "../data/paymentData";
 import {
-  formatBillions,
+  formatCurrency,
+  formatNumber,
   formatPercent,
   formatShare,
-  formatSignedBillions,
+  formatSignedCurrency,
 } from "./format";
 import { logIntelligentComponentInput } from "./governance";
 
 export type QuestionId =
-  | "changed-most"
-  | "where-money-went"
-  | "non-general-dependence"
-  | "compare-last-year";
+  | "top-vendors"
+  | "top-agencies"
+  | "category-mix"
+  | "year-over-year";
 
 export type QuestionOption = {
   id: QuestionId;
@@ -27,45 +27,13 @@ export type QuestionOption = {
 };
 
 export const questionOptions: QuestionOption[] = [
-  { id: "changed-most", label: "What changed most this year?" },
-  { id: "where-money-went", label: "Where did spending go?" },
-  {
-    id: "non-general-dependence",
-    label: "How much depends on non-general funds?",
-  },
-  { id: "compare-last-year", label: "Compare this year to last year" },
+  { id: "top-vendors", label: "Who received the most payments?" },
+  { id: "top-agencies", label: "Which agency spent the most?" },
+  { id: "category-mix", label: "What kinds of spending dominated?" },
+  { id: "year-over-year", label: "What changed year over year?" },
 ];
 
-export type FundBreakdown = {
-  fundType: FundType;
-  amountBillions: number;
-  shareOfYear: number;
-  yoyAmount: number | null;
-  yoyPercent: number | null;
-  description: string;
-};
-
-export type InsightContext = {
-  selectedYear: number;
-  previousYear: number | null;
-  fundFilter: FundFilter;
-  selectedTotal: number;
-  selectedPreviousTotal: number | null;
-  selectedShareOfYear: number;
-  totalForYear: number;
-  previousTotalForYear: number | null;
-  yoyAmount: number | null;
-  yoyPercent: number | null;
-  totalYoyAmount: number | null;
-  totalYoyPercent: number | null;
-  fundBreakdown: FundBreakdown[];
-  largestFund: FundBreakdown;
-  largestIncrease: FundBreakdown | null;
-  largestDecrease: FundBreakdown | null;
-  nonGeneralShare: number;
-};
-
-export type BudgetBriefing = {
+export type PaymentBriefing = {
   eyebrow: string;
   headline: string;
   summary: string;
@@ -73,14 +41,40 @@ export type BudgetBriefing = {
   nextStep: string;
 };
 
-function rowsForYear(records: BudgetRecord[], fiscalYear: number): BudgetRecord[] {
-  return records.filter((record) => record.fiscalYear === fiscalYear);
+export type InsightContext = {
+  selectedYear: FiscalYear;
+  lens: PaymentLens;
+  summary: PaymentSummary;
+  previousSummary: PaymentSummary | null;
+  totalYoyAmount: number | null;
+  totalYoyPercent: number | null;
+  selectedRows: PaymentEntity[];
+  topVendor: PaymentEntity;
+  topAgency: PaymentEntity;
+  topCategory: PaymentEntity;
+  topEntity: PaymentEntity;
+  biggestIncrease: PaymentEntity | null;
+};
+
+function getSummary(fiscalYear: FiscalYear): PaymentSummary {
+  const summary = paymentSummaries.find((item) => item.fiscalYear === fiscalYear);
+
+  if (!summary) {
+    throw new Error(`Missing payment summary for FY${fiscalYear}`);
+  }
+
+  return summary;
 }
 
-function sumRecords(records: BudgetRecord[], fundFilter: FundFilter): number {
-  return records
-    .filter((record) => fundFilter === "All funds" || record.fundType === fundFilter)
-    .reduce((sum, record) => sum + record.amountBillions, 0);
+function getEntities(
+  fiscalYear: FiscalYear,
+  lens: PaymentLens,
+  limit = 15,
+): PaymentEntity[] {
+  return paymentEntities
+    .filter((entity) => entity.fiscalYear === fiscalYear && entity.lens === lens)
+    .sort((first, second) => first.rank - second.rank)
+    .slice(0, limit);
 }
 
 function percentChange(current: number, previous: number | null): number | null {
@@ -91,215 +85,172 @@ function percentChange(current: number, previous: number | null): number | null 
   return ((current - previous) / previous) * 100;
 }
 
-function findFundAmount(
-  records: BudgetRecord[],
-  fundType: FundType,
-): number | null {
-  return (
-    records.find((record) => record.fundType === fundType)?.amountBillions ?? null
-  );
+function getBiggestIncrease(rows: PaymentEntity[]): PaymentEntity | null {
+  const rowsWithChange = rows.filter((row) => row.yoyAmount !== null);
+
+  if (rowsWithChange.length === 0) {
+    return null;
+  }
+
+  return [...rowsWithChange].sort(
+    (first, second) => (second.yoyAmount ?? 0) - (first.yoyAmount ?? 0),
+  )[0];
 }
 
 export function buildInsightContext(
-  selectedYear: number,
-  fundFilter: FundFilter,
+  selectedYear: FiscalYear,
+  lens: PaymentLens,
 ): InsightContext {
-  const currentRows = rowsForYear(budgetRecords, selectedYear);
-  const previousYear = fiscalYears.includes(selectedYear - 1)
-    ? selectedYear - 1
-    : null;
-  const previousRows = previousYear ? rowsForYear(budgetRecords, previousYear) : [];
-  const totalForYear = sumRecords(currentRows, "All funds");
-  const previousTotalForYear = previousYear
-    ? sumRecords(previousRows, "All funds")
-    : null;
-  const selectedTotal = sumRecords(currentRows, fundFilter);
-  const selectedPreviousTotal = previousYear
-    ? sumRecords(previousRows, fundFilter)
-    : null;
-
-  const fundBreakdown = fundTypes.map((fundType) => {
-    const amountBillions = findFundAmount(currentRows, fundType) ?? 0;
-    const previousAmount = findFundAmount(previousRows, fundType);
-    const yoyAmount =
-      previousAmount === null ? null : amountBillions - previousAmount;
-
-    return {
-      fundType,
-      amountBillions,
-      shareOfYear: totalForYear === 0 ? 0 : (amountBillions / totalForYear) * 100,
-      yoyAmount,
-      yoyPercent: percentChange(amountBillions, previousAmount),
-      description: fundDescriptions[fundType],
-    };
-  });
-
-  const largestFund = [...fundBreakdown].sort(
-    (first, second) => second.amountBillions - first.amountBillions,
-  )[0];
-
-  const fundsWithPrior = fundBreakdown.filter(
-    (fund) => fund.yoyAmount !== null,
-  );
-  const largestIncrease =
-    fundsWithPrior.length === 0
-      ? null
-      : [...fundsWithPrior].sort(
-          (first, second) => (second.yoyAmount ?? 0) - (first.yoyAmount ?? 0),
-        )[0];
-  const largestDecrease =
-    fundsWithPrior.length === 0
-      ? null
-      : [...fundsWithPrior].sort(
-          (first, second) => (first.yoyAmount ?? 0) - (second.yoyAmount ?? 0),
-        )[0];
-  const nonGeneralAmount =
-    fundBreakdown.find((fund) => fund.fundType === "Non-general funds")
-      ?.amountBillions ?? 0;
+  const summary = getSummary(selectedYear);
+  const previousYear = (selectedYear - 1) as FiscalYear;
+  const previousSummary = paymentSummaries.find(
+    (item) => item.fiscalYear === previousYear,
+  ) ?? null;
+  const selectedRows = getEntities(selectedYear, lens);
 
   return {
     selectedYear,
-    previousYear,
-    fundFilter,
-    selectedTotal,
-    selectedPreviousTotal,
-    selectedShareOfYear:
-      totalForYear === 0 ? 0 : (selectedTotal / totalForYear) * 100,
-    totalForYear,
-    previousTotalForYear,
-    yoyAmount:
-      selectedPreviousTotal === null
-        ? null
-        : selectedTotal - selectedPreviousTotal,
-    yoyPercent: percentChange(selectedTotal, selectedPreviousTotal),
-    totalYoyAmount:
-      previousTotalForYear === null ? null : totalForYear - previousTotalForYear,
-    totalYoyPercent: percentChange(totalForYear, previousTotalForYear),
-    fundBreakdown,
-    largestFund,
-    largestIncrease,
-    largestDecrease,
-    nonGeneralShare:
-      totalForYear === 0 ? 0 : (nonGeneralAmount / totalForYear) * 100,
+    lens,
+    summary,
+    previousSummary,
+    totalYoyAmount: previousSummary
+      ? summary.totalAmount - previousSummary.totalAmount
+      : null,
+    totalYoyPercent: percentChange(
+      summary.totalAmount,
+      previousSummary?.totalAmount ?? null,
+    ),
+    selectedRows,
+    topVendor: getEntities(selectedYear, "Vendor", 1)[0],
+    topAgency: getEntities(selectedYear, "Agency", 1)[0],
+    topCategory: getEntities(selectedYear, "Category", 1)[0],
+    topEntity: selectedRows[0],
+    biggestIncrease: getBiggestIncrease(selectedRows),
   };
 }
 
-export function generateBudgetBriefing(
+export function generatePaymentBriefing(
   questionId: QuestionId,
   context: InsightContext,
-): BudgetBriefing {
-  logIntelligentComponentInput("budget_briefing_generator", {
+): PaymentBriefing {
+  logIntelligentComponentInput("vendor_payment_briefing_generator", {
     questionId,
     selectedYear: context.selectedYear,
-    fundFilter: context.fundFilter,
-    selectedTotal: context.selectedTotal,
-    previousYear: context.previousYear,
-    yoyAmount: context.yoyAmount,
-    yoyPercent: context.yoyPercent,
-    fundBreakdown: context.fundBreakdown,
+    lens: context.lens,
+    summary: context.summary,
+    selectedRows: context.selectedRows.slice(0, 5),
   });
 
-  const selectedLabel =
-    context.fundFilter === "All funds"
-      ? "total spending"
-      : context.fundFilter.toLowerCase();
-  const selectedLabelSentence =
-    context.fundFilter === "All funds" ? "Total spending" : context.fundFilter;
-  const priorText = context.previousYear
-    ? `from FY${context.previousYear} to FY${context.selectedYear}`
-    : `in FY${context.selectedYear}`;
-  const biggestMover = context.largestIncrease ?? context.largestFund;
-  const nonGeneralShare = formatShare(context.nonGeneralShare);
-
-  if (questionId === "where-money-went") {
+  if (questionId === "top-agencies") {
     return {
-      eyebrow: `FY${context.selectedYear} spending mix`,
-      headline: `The largest spending bucket was ${context.largestFund.fundType}.`,
-      summary: `Washington recorded ${formatBillions(
-        context.totalForYear,
-      )} in total spending. ${context.largestFund.fundType} accounted for ${formatShare(
-        context.largestFund.shareOfYear,
-      )}, while non-general funds accounted for ${nonGeneralShare}.`,
-      evidence: context.fundBreakdown.map(
-        (fund) =>
-          `${fund.fundType}: ${formatBillions(fund.amountBillions)} (${formatShare(
-            fund.shareOfYear,
-          )} of FY${context.selectedYear} total).`,
-      ),
-      nextStep:
-        "Check whether the largest fund bucket is also the fastest growing bucket.",
-    };
-  }
-
-  if (questionId === "non-general-dependence") {
-    return {
-      eyebrow: `FY${context.selectedYear} funding exposure`,
-      headline: `${nonGeneralShare} of spending came from non-general funds.`,
-      summary: `That bucket combines other state funds, federal funds, and bonds. It is useful for a non-technical reviewer because it separates the core General Fund story from dollars that may depend on federal rules, dedicated accounts, or borrowing authority.`,
+      eyebrow: `FY${context.selectedYear} agency view`,
+      headline: `${context.topAgency.name} had the largest payment total.`,
+      summary: `${context.topAgency.name} accounted for ${formatShare(
+        context.topAgency.shareOfYear,
+      )} of FY${context.selectedYear} payments, totaling ${formatCurrency(
+        context.topAgency.amount,
+      )}.`,
       evidence: [
-        `Non-general funds: ${formatBillions(
-          context.fundBreakdown.find(
-            (fund) => fund.fundType === "Non-general funds",
-          )?.amountBillions ?? 0,
+        `${formatNumber(
+          context.topAgency.recordCount,
+        )} payment rows were tied to this agency.`,
+        `The agency worked with ${formatNumber(
+          context.topAgency.vendorCount,
+        )} unique vendors in the embedded aggregate.`,
+        `Total FY${context.selectedYear} payments were ${formatCurrency(
+          context.summary.totalAmount,
         )}.`,
-        `General Fund: ${formatBillions(
-          context.fundBreakdown.find((fund) => fund.fundType === "General Fund")
-            ?.amountBillions ?? 0,
-        )}.`,
-        `Total spending: ${formatBillions(context.totalForYear)}.`,
       ],
       nextStep:
-        "In production, split this bucket into federal funds, other state funds, and bonds.",
+        "Open the vendor view next to see whether the agency total is concentrated in a few recipients.",
     };
   }
 
-  if (questionId === "compare-last-year") {
+  if (questionId === "category-mix") {
     return {
-      eyebrow: `${selectedLabel} comparison`,
-      headline: `${selectedLabelSentence} changed by ${formatSignedBillions(
-        context.yoyAmount,
-      )} ${priorText}.`,
-      summary: `The selected view was ${formatBillions(
-        context.selectedTotal,
-      )} in FY${context.selectedYear}, a ${formatPercent(
-        context.yoyPercent,
-      )} change from the prior fiscal year.`,
+      eyebrow: `FY${context.selectedYear} spending category mix`,
+      headline: `${context.topCategory.name} dominated the payment mix.`,
+      summary: `${context.topCategory.name} represented ${formatShare(
+        context.topCategory.shareOfYear,
+      )} of FY${context.selectedYear} payments. That makes it the first place a non-technical reviewer should look before reading individual vendor rows.`,
       evidence: [
-        `FY${context.selectedYear}: ${formatBillions(context.selectedTotal)}.`,
-        context.selectedPreviousTotal === null
-          ? "No prior year is included in this embedded dataset."
-          : `FY${context.previousYear}: ${formatBillions(
-              context.selectedPreviousTotal,
+        `${context.topCategory.name}: ${formatCurrency(
+          context.topCategory.amount,
+        )}.`,
+        `${formatNumber(
+          context.topCategory.vendorCount,
+        )} vendors appear in this category aggregate.`,
+        `${formatNumber(
+          context.summary.negativeRowCount,
+        )} rows had negative amounts, likely adjustments or reversals.`,
+      ],
+      nextStep:
+        "In production, I would add drill-down from category to agency to vendor.",
+    };
+  }
+
+  if (questionId === "year-over-year") {
+    const mover = context.biggestIncrease;
+
+    return {
+      eyebrow:
+        context.previousSummary === null
+          ? `FY${context.selectedYear} baseline year`
+          : `FY${context.selectedYear} change from FY${context.previousSummary.fiscalYear}`,
+      headline:
+        context.previousSummary === null
+          ? "This workbook starts in FY2022, so there is no prior-year comparison."
+          : `Total payments changed by ${formatSignedCurrency(
+              context.totalYoyAmount,
             )}.`,
-        `Share of FY${context.selectedYear} total: ${formatShare(
-          context.selectedShareOfYear,
+      summary:
+        context.previousSummary === null
+          ? `FY${context.selectedYear} payments totaled ${formatCurrency(
+              context.summary.totalAmount,
+            )} across ${formatNumber(context.summary.recordCount)} rows.`
+          : `Payments moved ${formatPercent(
+              context.totalYoyPercent,
+            )} year over year. ${
+              mover
+                ? `${mover.name} was the largest ${context.lens.toLowerCase()} mover in the selected view.`
+                : "The selected view has no comparable prior-year rows."
+            }`,
+      evidence: [
+        `FY${context.selectedYear}: ${formatCurrency(
+          context.summary.totalAmount,
         )}.`,
+        context.previousSummary
+          ? `FY${context.previousSummary.fiscalYear}: ${formatCurrency(
+              context.previousSummary.totalAmount,
+            )}.`
+          : "No prior fiscal year is included in the provided workbook.",
+        mover
+          ? `${mover.name}: ${formatSignedCurrency(
+              mover.yoyAmount,
+            )} (${formatPercent(mover.yoyPercent)}).`
+          : "No ranked mover is available for this selection.",
       ],
       nextStep:
-        "Use the fund breakdown to see whether the movement came from core state dollars or non-general funds.",
+        "Use the chart below to separate broad payment growth from a single agency, category, or vendor spike.",
     };
   }
 
   return {
-    eyebrow: `FY${context.selectedYear} budget movement`,
-    headline: `${biggestMover.fundType} ${
-      biggestMover.fundType === "Non-general funds" ? "were" : "was"
-    } the biggest dollar mover.`,
-    summary: `Washington's ${selectedLabel} was ${formatBillions(
-      context.selectedTotal,
-    )}. Across all funds, total spending changed by ${formatSignedBillions(
-      context.totalYoyAmount,
-    )} (${formatPercent(context.totalYoyPercent)}) ${priorText}.`,
+    eyebrow: `FY${context.selectedYear} top recipient`,
+    headline: `${context.topVendor.name} received the largest total payments.`,
+    summary: `${context.topVendor.name} received ${formatCurrency(
+      context.topVendor.amount,
+    )}, or ${formatShare(
+      context.topVendor.shareOfYear,
+    )} of the FY${context.selectedYear} payment total. The app shows this answer first so a non-technical user does not have to sort a spreadsheet manually.`,
     evidence: [
-      `${biggestMover.fundType} changed by ${formatSignedBillions(
-        biggestMover.yoyAmount,
-      )} (${formatPercent(biggestMover.yoyPercent)}).`,
-      `The largest FY${context.selectedYear} bucket was ${
-        context.largestFund.fundType
-      } at ${formatBillions(context.largestFund.amountBillions)}.`,
-      `Non-general funds represented ${nonGeneralShare} of the spending mix.`,
+      `${formatNumber(
+        context.topVendor.recordCount,
+      )} payment rows are included for this vendor aggregate.`,
+      `The top agency overall was ${context.topAgency.name}.`,
+      `The top category overall was ${context.topCategory.name}.`,
     ],
     nextStep:
-      "Review the fund mix before drawing a policy conclusion from the top-line increase.",
+      "Compare the top vendor against the top agency and category before drawing a conclusion.",
   };
 }
