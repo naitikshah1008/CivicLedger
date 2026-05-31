@@ -33,6 +33,13 @@ export const questionOptions: QuestionOption[] = [
   { id: "year-over-year", label: "What changed year over year?" },
 ];
 
+export type PlainEnglishInterpretation = {
+  questionId: QuestionId;
+  lens: PaymentLens;
+  selectedYear: FiscalYear;
+  matchedIntent: string;
+};
+
 export type PaymentBriefing = {
   eyebrow: string;
   headline: string;
@@ -95,6 +102,69 @@ function getBiggestIncrease(rows: PaymentEntity[]): PaymentEntity | null {
   return [...rowsWithChange].sort(
     (first, second) => (second.yoyAmount ?? 0) - (first.yoyAmount ?? 0),
   )[0];
+}
+
+export function interpretPlainEnglishQuestion(
+  userQuestion: string,
+  currentYear: FiscalYear,
+  currentLens: PaymentLens,
+): PlainEnglishInterpretation {
+  const normalized = userQuestion.trim().toLowerCase();
+  const selectedYear: FiscalYear = normalized.includes("2022")
+    ? 2022
+    : normalized.includes("2023")
+      ? 2023
+      : currentYear;
+
+  const lens: PaymentLens =
+    /\bagenc(y|ies)\b|\bdepartment\b|\bprogram\b/.test(normalized)
+      ? "Agency"
+      : /\bcategory\b|\bcategories\b|\bkind\b|\bkinds\b|\btype\b|\btypes\b|\bservice\b/.test(
+            normalized,
+          )
+        ? "Category"
+        : /\bvendor\b|\bvendors\b|\brecipient\b|\bprovider\b|\bcompany\b|\bcontractor\b|\bsupplier\b/.test(
+              normalized,
+            )
+          ? "Vendor"
+          : currentLens;
+
+  const questionId: QuestionId =
+    /\bchange\b|\bchanged\b|\bcompare\b|\bgrowth\b|\bgrow\b|\bincrease\b|\bdecrease\b|\btrend\b|\byear\b|\bmoved\b|\bspike\b/.test(
+      normalized,
+    )
+      ? "year-over-year"
+      : lens === "Agency"
+        ? "top-agencies"
+        : lens === "Category"
+          ? "category-mix"
+          : "top-vendors";
+
+  const matchedIntent =
+    questionId === "year-over-year"
+      ? `Compare FY${selectedYear} with the prior year by ${lens.toLowerCase()}`
+      : questionId === "category-mix"
+        ? `Show FY${selectedYear} payment categories`
+        : questionId === "top-agencies"
+          ? `Show top FY${selectedYear} agencies`
+          : `Show top FY${selectedYear} vendors`;
+
+  logIntelligentComponentInput("plain_english_question_router", {
+    userQuestion,
+    currentYear,
+    currentLens,
+    selectedYear,
+    lens,
+    questionId,
+    matchedIntent,
+  });
+
+  return {
+    questionId,
+    lens,
+    selectedYear,
+    matchedIntent,
+  };
 }
 
 export function buildInsightContext(

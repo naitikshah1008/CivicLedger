@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import {
   MovementChart,
   TopEntitiesChart,
@@ -17,6 +17,7 @@ import {
   QuestionId,
   buildInsightContext,
   generatePaymentBriefing,
+  interpretPlainEnglishQuestion,
   questionOptions,
 } from "./lib/insights";
 import {
@@ -31,6 +32,8 @@ function App() {
   const [selectedYear, setSelectedYear] = useState<FiscalYear>(2023);
   const [lens, setLens] = useState<PaymentLens>("Vendor");
   const [questionId, setQuestionId] = useState<QuestionId>("top-vendors");
+  const [plainQuestion, setPlainQuestion] = useState("");
+  const [matchedIntent, setMatchedIntent] = useState("");
 
   const context = useMemo(
     () => buildInsightContext(selectedYear, lens),
@@ -47,6 +50,25 @@ function App() {
         ? "positive"
         : "warning";
 
+  function handlePlainQuestionSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!plainQuestion.trim()) {
+      return;
+    }
+
+    const interpretation = interpretPlainEnglishQuestion(
+      plainQuestion,
+      selectedYear,
+      lens,
+    );
+
+    setQuestionId(interpretation.questionId);
+    setSelectedYear(interpretation.selectedYear);
+    setLens(interpretation.lens);
+    setMatchedIntent(interpretation.matchedIntent);
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -61,6 +83,21 @@ function App() {
           FY2022-FY2023 workbook aggregate
         </div>
       </header>
+
+      <section className="ask-panel" aria-label="Plain English question router">
+        <form className="ask-form" onSubmit={handlePlainQuestionSubmit}>
+          <label>
+            Plain-English question
+            <input
+              value={plainQuestion}
+              onChange={(event) => setPlainQuestion(event.target.value)}
+              placeholder="Which vendors changed most in 2023?"
+            />
+          </label>
+          <button type="submit">Ask</button>
+        </form>
+        {matchedIntent ? <p className="matched-intent">{matchedIntent}</p> : null}
+      </section>
 
       <section className="control-strip" aria-label="Briefing controls">
         <label>

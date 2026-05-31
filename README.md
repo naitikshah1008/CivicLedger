@@ -12,7 +12,8 @@ The pain I chose to solve is the spreadsheet starting problem. The provided Shar
 
 The app lets a user choose:
 
-- a plain-English question
+- a natural-language payment question
+- a guided question
 - a fiscal year
 - a view: vendors, agencies, or categories
 
@@ -25,6 +26,8 @@ It then updates:
 - year-over-year movement bars
 - supporting rows for the selected view
 
+The natural-language input is intentionally narrow: it routes questions like "Which vendors changed most in 2023?" into the guided analysis views. I chose this over a full chatbot because the POC needs reliable, auditable answers from a known dataset.
+
 The source workbook has these main columns: fiscal year, fiscal month, agency, category, subcategory, vendor, and amount. I embedded app-ready aggregates in `src/data/paymentData.ts` instead of committing the raw 48MB workbook.
 
 Source workbook: [Washington State fiscal data](https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg)
@@ -34,9 +37,9 @@ Source workbook: [Washington State fiscal data](https://provnco.sharepoint.com/:
 - React and TypeScript with Vite for a small, fast web app.
 - Aggregated data generated from the provided Excel workbook.
 - No charting library. The charts are simple SVG and CSS so the core data logic is easy to inspect.
-- Data transformation and briefing generation are isolated in `src/lib/insights.ts`.
+- Data transformation, natural-language routing, and briefing generation are isolated in `src/lib/insights.ts`.
 - Input logging for the intelligent briefing layer is isolated in `src/lib/governance.ts`.
-- The briefing generator is deterministic instead of a live LLM call.
+- The question router and briefing generator are deterministic instead of live LLM calls.
 
 Run locally:
 
@@ -49,9 +52,9 @@ npm run dev
 
 1. I embedded aggregates instead of the raw workbook. The workbook is large, and the POC needs a reliable browser demo. In production, I would load the raw data through a governed pipeline and aggregate server-side.
 
-2. I used guided questions instead of a blank chatbot. A blank chat box can be powerful, but it can also make non-technical users responsible for knowing what questions are possible.
+2. I used a constrained plain-English question router instead of a blank chatbot. A blank chat box can be powerful, but it can also make non-technical users responsible for knowing what questions are possible and can produce less reproducible answers in a short POC.
 
-3. I used deterministic briefings instead of calling a live model. This keeps the demo reproducible and avoids API key risk. In production, this layer could call an LLM after logging inputs, enforcing access controls, and evaluating outputs.
+3. I used deterministic routing and briefings instead of calling a live model. This keeps the demo reproducible and avoids API key risk. In production, this layer could call an LLM after logging inputs, enforcing access controls, and evaluating outputs.
 
 4. I kept the drill-down shallow: vendors, agencies, and categories. In production, I would add agency-to-category-to-vendor drill-down, search, filters, and raw-row evidence.
 
@@ -70,7 +73,7 @@ This POC would need several changes before production:
 
 ## AI Usage And Data Handling
 
-The app does not call a live model. It uses a deterministic briefing generator as an AI-ready intelligent layer. Every input to that layer is logged through `logIntelligentComponentInput` before a briefing is generated:
+The app does not call a live model. It uses a deterministic natural-language router and briefing generator as AI-ready intelligent layers. Every input to those layers is logged through `logIntelligentComponentInput` before a route or briefing is generated:
 
 ```ts
 console.info("INTELLIGENT_COMPONENT_INPUT", payload);

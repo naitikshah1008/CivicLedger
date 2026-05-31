@@ -1072,5 +1072,3 @@ export const fiscalYears = [2022, 2023] as FiscalYear[];
 export const paymentLenses = ["Vendor", "Agency", "Category"] as PaymentLens[];
 
 export const sourceWorkbookName = "Vendor-Payments_2021-23.xlsx";
-
-export const sourceWorkbookUrl = "https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg";

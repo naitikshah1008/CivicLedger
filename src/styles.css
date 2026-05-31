@@ -22,6 +22,7 @@ body {
 }
 
 button,
+input,
 select {
   font: inherit;
 }
@@ -121,6 +122,63 @@ select {
   font-size: 0.95rem;
   font-weight: 700;
   text-transform: none;
+}
+
+input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 12px;
+  background: #fbfdff;
+  color: #172033;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+input::placeholder {
+  color: #7b8797;
+  font-weight: 650;
+}
+
+.ask-panel {
+  margin-bottom: 12px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(22, 32, 51, 0.06);
+}
+
+.ask-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 12px;
+  align-items: end;
+}
+
+.ask-form button {
+  min-height: 46px;
+  border: 1px solid #1d4ed8;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.ask-form button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.25);
+  outline-offset: 2px;
+}
+
+.matched-intent {
+  margin: 10px 0 0;
+  color: #536276;
+  font-size: 0.9rem;
+  font-weight: 750;
 }
 
 .briefing-panel {
@@ -478,6 +536,7 @@ td {
   }
 
   .control-strip,
+  .ask-form,
   .briefing-panel,
   .chart-grid {
     grid-template-columns: 1fr;
