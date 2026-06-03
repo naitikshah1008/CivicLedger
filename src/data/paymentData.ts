@@ -1,4 +1,4 @@
-export type FiscalYear = 2022 | 2023;
+export type FiscalYear = number;
 
 export type PaymentLens = "Agency" | "Category" | "Vendor";
 
@@ -25,6 +25,16 @@ export type PaymentEntity = {
   agencyCount: number;
   yoyAmount: number | null;
   yoyPercent: number | null;
+};
+
+export type PaymentDataSource = {
+  id: string;
+  name: string;
+  description: string;
+  sourceLabel: string;
+  uploadedAt?: string;
+  summaries: PaymentSummary[];
+  entities: PaymentEntity[];
 };
 
 export const paymentSummaries = [
@@ -1072,3 +1082,13 @@ export const fiscalYears = [2022, 2023] as FiscalYear[];
 export const paymentLenses = ["Vendor", "Agency", "Category"] as PaymentLens[];
 
 export const sourceWorkbookName = "Vendor-Payments_2021-23.xlsx";
+
+export const washingtonVendorPaymentSource: PaymentDataSource = {
+  id: "washington-vendor-payments-2021-23",
+  name: "Washington vendor payments",
+  description:
+    "FY2022-FY2023 Washington State vendor payments aggregated from the source workbook.",
+  sourceLabel: sourceWorkbookName,
+  summaries: paymentSummaries,
+  entities: paymentEntities,
+};

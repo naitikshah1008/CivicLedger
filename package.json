@@ -1,5 +1,5 @@
 {
-  "name": "golden-vendor-payment-briefing",
+  "name": "civicledger",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "read-excel-file": "^9.0.10"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
