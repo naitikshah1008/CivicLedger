@@ -1,10 +1,9 @@
 import {
   FiscalYear,
+  PaymentDataSource,
   PaymentEntity,
   PaymentLens,
   PaymentSummary,
-  paymentEntities,
-  paymentSummaries,
 } from "../data/paymentData";
 import {
   formatCurrency,
@@ -63,8 +62,11 @@ export type InsightContext = {
   biggestIncrease: PaymentEntity | null;
 };
 
-function getSummary(fiscalYear: FiscalYear): PaymentSummary {
-  const summary = paymentSummaries.find((item) => item.fiscalYear === fiscalYear);
+function getSummary(
+  source: PaymentDataSource,
+  fiscalYear: FiscalYear,
+): PaymentSummary {
+  const summary = source.summaries.find((item) => item.fiscalYear === fiscalYear);
 
   if (!summary) {
     throw new Error(`Missing payment summary for FY${fiscalYear}`);
@@ -74,11 +76,12 @@ function getSummary(fiscalYear: FiscalYear): PaymentSummary {
 }
 
 function getEntities(
+  source: PaymentDataSource,
   fiscalYear: FiscalYear,
   lens: PaymentLens,
   limit = 15,
 ): PaymentEntity[] {
-  return paymentEntities
+  return source.entities
     .filter((entity) => entity.fiscalYear === fiscalYear && entity.lens === lens)
     .sort((first, second) => first.rank - second.rank)
     .slice(0, limit);
@@ -168,15 +171,16 @@ export function interpretPlainEnglishQuestion(
 }
 
 export function buildInsightContext(
+  source: PaymentDataSource,
   selectedYear: FiscalYear,
   lens: PaymentLens,
 ): InsightContext {
-  const summary = getSummary(selectedYear);
+  const summary = getSummary(source, selectedYear);
   const previousYear = (selectedYear - 1) as FiscalYear;
-  const previousSummary = paymentSummaries.find(
+  const previousSummary = source.summaries.find(
     (item) => item.fiscalYear === previousYear,
   ) ?? null;
-  const selectedRows = getEntities(selectedYear, lens);
+  const selectedRows = getEntities(source, selectedYear, lens);
 
   return {
     selectedYear,
@@ -191,9 +195,9 @@ export function buildInsightContext(
       previousSummary?.totalAmount ?? null,
     ),
     selectedRows,
-    topVendor: getEntities(selectedYear, "Vendor", 1)[0],
-    topAgency: getEntities(selectedYear, "Agency", 1)[0],
-    topCategory: getEntities(selectedYear, "Category", 1)[0],
+    topVendor: getEntities(source, selectedYear, "Vendor", 1)[0],
+    topAgency: getEntities(source, selectedYear, "Agency", 1)[0],
+    topCategory: getEntities(source, selectedYear, "Category", 1)[0],
     topEntity: selectedRows[0],
     biggestIncrease: getBiggestIncrease(selectedRows),
   };

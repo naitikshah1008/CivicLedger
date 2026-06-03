@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   MovementChart,
   TopEntitiesChart,
@@ -7,11 +7,10 @@ import {
 import { MetricCard } from "./components/MetricCard";
 import {
   FiscalYear,
+  PaymentDataSource,
   PaymentLens,
-  fiscalYears,
   paymentLenses,
-  paymentSummaries,
-  sourceWorkbookName,
+  washingtonVendorPaymentSource,
 } from "./data/paymentData";
 import {
   QuestionId,
@@ -20,6 +19,7 @@ import {
   interpretPlainEnglishQuestion,
   questionOptions,
 } from "./lib/insights";
+import { importPaymentFile } from "./lib/importPayments";
 import {
   formatCurrency,
   formatNumber,
@@ -29,15 +29,42 @@ import {
 } from "./lib/format";
 
 function App() {
+  const [sources, setSources] = useState<PaymentDataSource[]>([
+    washingtonVendorPaymentSource,
+  ]);
+  const [activeSourceId, setActiveSourceId] = useState(
+    washingtonVendorPaymentSource.id,
+  );
   const [selectedYear, setSelectedYear] = useState<FiscalYear>(2023);
   const [lens, setLens] = useState<PaymentLens>("Vendor");
   const [questionId, setQuestionId] = useState<QuestionId>("top-vendors");
   const [plainQuestion, setPlainQuestion] = useState("");
   const [matchedIntent, setMatchedIntent] = useState("");
+  const [importStatus, setImportStatus] = useState("");
+
+  const activeSource = useMemo(
+    () =>
+      sources.find((source) => source.id === activeSourceId) ??
+      washingtonVendorPaymentSource,
+    [activeSourceId, sources],
+  );
+  const sourceYears = useMemo(
+    () =>
+      activeSource.summaries
+        .map((summary) => summary.fiscalYear)
+        .sort((first, second) => first - second),
+    [activeSource],
+  );
+
+  useEffect(() => {
+    if (!sourceYears.includes(selectedYear) && sourceYears.length > 0) {
+      setSelectedYear(sourceYears[sourceYears.length - 1]);
+    }
+  }, [selectedYear, sourceYears]);
 
   const context = useMemo(
-    () => buildInsightContext(selectedYear, lens),
-    [selectedYear, lens],
+    () => buildInsightContext(activeSource, selectedYear, lens),
+    [activeSource, selectedYear, lens],
   );
   const briefing = useMemo(
     () => generatePaymentBriefing(questionId, context),
@@ -69,20 +96,103 @@ function App() {
     setMatchedIntent(interpretation.matchedIntent);
   }
 
+  async function handleFileImport(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setImportStatus(`Importing ${file.name}...`);
+
+    try {
+      const importedSource = await importPaymentFile(file);
+      const importedYears = importedSource.summaries.map(
+        (summary) => summary.fiscalYear,
+      );
+
+      setSources((currentSources) => [
+        importedSource,
+        ...currentSources.filter((source) => source.id !== importedSource.id),
+      ]);
+      setActiveSourceId(importedSource.id);
+      setSelectedYear(Math.max(...importedYears));
+      setLens("Vendor");
+      setQuestionId("top-vendors");
+      setMatchedIntent("");
+      setImportStatus(
+        `Imported ${importedSource.sourceLabel}: ${formatNumber(
+          importedSource.summaries.reduce(
+            (total, summary) => total + summary.recordCount,
+            0,
+          ),
+        )} rows normalized.`,
+      );
+    } catch (error) {
+      setImportStatus(
+        error instanceof Error
+          ? error.message
+          : "The file could not be imported.",
+      );
+    } finally {
+      event.target.value = "";
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Golden Analytics POC</p>
-          <h1>Golden Vendor Payment Briefing</h1>
+          <p className="eyebrow">CivicLedger workspace</p>
+          <h1>CivicLedger</h1>
           <p className="subtitle">
-            Plain-English answers from Washington vendor payment records.
+            Plain-English payment intelligence across public spending files.
           </p>
         </div>
-        <div className="source-chip" title={sourceWorkbookName}>
-          FY2022-FY2023 workbook aggregate
+        <div className="source-chip" title={activeSource.description}>
+          {activeSource.sourceLabel}
         </div>
       </header>
+
+      <section className="source-panel" aria-label="Data source manager">
+        <label>
+          Dataset
+          <select
+            value={activeSourceId}
+            onChange={(event) => setActiveSourceId(event.target.value)}
+          >
+            {sources.map((source) => (
+              <option key={source.id} value={source.id}>
+                {source.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Import file
+          <input
+            className="file-input"
+            type="file"
+            accept=".xlsx,.csv"
+            onChange={handleFileImport}
+          />
+        </label>
+
+        <div className="source-summary">
+          <strong>{activeSource.name}</strong>
+          <span>
+            {formatNumber(
+              activeSource.summaries.reduce(
+                (total, summary) => total + summary.recordCount,
+                0,
+              ),
+            )}{" "}
+            rows across {activeSource.summaries.length} fiscal years
+          </span>
+        </div>
+        {importStatus ? <p className="import-status">{importStatus}</p> : null}
+      </section>
 
       <section className="ask-panel" aria-label="Plain English question router">
         <form className="ask-form" onSubmit={handlePlainQuestionSubmit}>
@@ -120,7 +230,7 @@ function App() {
             value={selectedYear}
             onChange={(event) => setSelectedYear(Number(event.target.value) as FiscalYear)}
           >
-            {[...fiscalYears].reverse().map((year) => (
+            {[...sourceYears].reverse().map((year) => (
               <option key={year} value={year}>
                 FY{year}
               </option>
@@ -190,7 +300,7 @@ function App() {
       </section>
 
       <section className="chart-grid">
-        <YearTrendChart summaries={paymentSummaries} selectedYear={selectedYear} />
+        <YearTrendChart summaries={activeSource.summaries} selectedYear={selectedYear} />
         <TopEntitiesChart rows={context.selectedRows} lens={lens} />
         <MovementChart rows={context.selectedRows} selectedYear={selectedYear} />
       </section>
@@ -202,7 +312,7 @@ function App() {
             <p>Top {lens.toLowerCase()} aggregates behind the briefing</p>
           </div>
           <span>
-            Source: {sourceWorkbookName}. Raw workbook is summarized into app-ready
+            Source: {activeSource.sourceLabel}. Raw files are summarized into app-ready
             aggregates.
           </span>
         </div>

@@ -4,11 +4,11 @@ type LoggedPayload = {
   timestamp: string;
 };
 
-const SESSION_LOG_KEY = "golden_analytics_input_log";
+const SESSION_LOG_KEY = "civicledger_input_log";
 
 declare global {
   interface Window {
-    __GOLDEN_ANALYTICS_INPUT_LOG__?: LoggedPayload[];
+    __CIVICLEDGER_INPUT_LOG__?: LoggedPayload[];
   }
 }
 
@@ -41,10 +41,10 @@ export function logIntelligentComponentInput(
   try {
     if (
       Object.isExtensible(window) ||
-      "__GOLDEN_ANALYTICS_INPUT_LOG__" in window
+      "__CIVICLEDGER_INPUT_LOG__" in window
     ) {
-      window.__GOLDEN_ANALYTICS_INPUT_LOG__ = [
-        ...(window.__GOLDEN_ANALYTICS_INPUT_LOG__ ?? []),
+      window.__CIVICLEDGER_INPUT_LOG__ = [
+        ...(window.__CIVICLEDGER_INPUT_LOG__ ?? []),
         payload,
       ];
     }

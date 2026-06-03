@@ -90,9 +90,9 @@ h2 {
   text-align: center;
 }
 
+.source-panel,
 .control-strip {
   display: grid;
-  grid-template-columns: minmax(260px, 1.5fr) minmax(160px, 0.7fr) minmax(220px, 1fr);
   gap: 12px;
   margin-bottom: 16px;
   border: 1px solid #d9e0ea;
@@ -100,6 +100,15 @@ h2 {
   padding: 12px;
   background: #ffffff;
   box-shadow: 0 12px 30px rgba(22, 32, 51, 0.06);
+}
+
+.source-panel {
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) minmax(260px, 1fr);
+  align-items: end;
+}
+
+.control-strip {
+  grid-template-columns: minmax(260px, 1.5fr) minmax(160px, 0.7fr) minmax(220px, 1fr);
 }
 
 label {
@@ -136,9 +145,41 @@ input {
   font-weight: 700;
 }
 
+.file-input {
+  padding-top: 10px;
+}
+
 input::placeholder {
   color: #7b8797;
   font-weight: 650;
+}
+
+.source-summary {
+  display: grid;
+  gap: 5px;
+  min-height: 46px;
+  align-content: center;
+  border: 1px solid #dbe3ee;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: #f8fafc;
+}
+
+.source-summary strong {
+  color: #172033;
+  font-size: 0.95rem;
+}
+
+.source-summary span,
+.import-status {
+  color: #59677a;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.import-status {
+  grid-column: 1 / -1;
+  margin: 0;
 }
 
 .ask-panel {
@@ -536,6 +577,7 @@ td {
   }
 
   .control-strip,
+  .source-panel,
   .ask-form,
   .briefing-panel,
   .chart-grid {
@@ -568,6 +610,7 @@ td {
   .briefing-panel,
   .chart-panel,
   .detail-panel,
+  .source-panel,
   .control-strip {
     padding: 12px;
   }
