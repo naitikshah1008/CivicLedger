@@ -2,12 +2,13 @@
 
 CivicLedger is a React and TypeScript web app for turning public spending files into plain-English payment intelligence.
 
-The app starts with a built-in public vendor-payment sample and can import additional `.xlsx` or `.csv` files in the browser. Imported files are normalized, aggregated, and routed through the same briefing, charts, and table views.
+The app starts with a built-in public vendor-payment sample and can import additional `.xlsx` or `.csv` files. When the local API is running, uploads are parsed server-side and saved as reusable dataset aggregates. If the API is offline, the frontend falls back to browser-only import.
 
 ## Features
 
 - Built-in public vendor payment aggregate
-- Client-side import for XLSX and CSV spending files
+- Backend-backed import for XLSX and CSV spending files
+- Browser-only import fallback when the API is offline
 - Dataset switcher for working across multiple sources
 - Plain-English question routing
 - Fiscal year, vendor, agency, and category views
@@ -33,13 +34,16 @@ Rows without a fiscal year or amount are skipped. Missing agency, category, vend
 ## Architecture
 
 - `src/data/paymentData.ts` contains the built-in payment aggregate.
+- `server/index.mjs` provides the local upload and dataset API.
+- `.civicledger/` stores local uploads and generated dataset aggregates.
+- `src/lib/backendDatasets.ts` connects the frontend to the local API.
 - `src/lib/importPayments.ts` parses uploaded Excel and CSV files.
 - `src/lib/aggregatePayments.ts` converts normalized rows into summaries and ranked entities.
 - `src/lib/insights.ts` handles question routing and briefing generation.
 - `src/lib/governance.ts` logs inputs to intelligent components.
 - `src/components/Charts.tsx` renders lightweight SVG charts without a charting library.
 
-The Excel parser is lazy-loaded only when a user imports a file, keeping the initial app bundle smaller.
+The Excel parser is lazy-loaded only when a user imports a file, keeping the initial app bundle smaller. The same aggregation shape is used by the browser fallback and the backend API.
 
 ## Governance Logging
 
@@ -53,10 +57,21 @@ The payload is also stored in `sessionStorage` under `civicledger_input_log` dur
 
 ## Run Locally
 
+Frontend only:
+
 ```bash
 npm install
 npm run dev
 ```
+
+Frontend with persistent backend imports:
+
+```bash
+npm run dev:api
+npm run dev
+```
+
+Run those commands in separate terminals. The Vite dev server proxies `/api` requests to the local API on port `8787`.
 
 Build:
 
