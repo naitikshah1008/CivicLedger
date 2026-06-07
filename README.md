@@ -2,11 +2,11 @@
 
 CivicLedger is a React and TypeScript web app for turning public spending files into plain-English payment intelligence.
 
-The app starts with a built-in Washington State vendor-payment dataset and can import additional `.xlsx` or `.csv` files in the browser. Imported files are normalized, aggregated, and routed through the same briefing, charts, and table views.
+The app starts with a built-in public vendor-payment sample and can import additional `.xlsx` or `.csv` files in the browser. Imported files are normalized, aggregated, and routed through the same briefing, charts, and table views.
 
 ## Features
 
-- Built-in Washington State vendor payment aggregate
+- Built-in public vendor payment aggregate
 - Client-side import for XLSX and CSV spending files
 - Dataset switcher for working across multiple sources
 - Plain-English question routing
@@ -15,7 +15,7 @@ The app starts with a built-in Washington State vendor-payment dataset and can i
 - Top vendor, agency, and category rankings
 - Input logging for intelligent routing and briefing generation
 
-Source workbook: [Washington State fiscal data](https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg)
+Source workbook: [Public payment sample data](https://provnco.sharepoint.com/:x:/s/Technology/IQCgqYJsp95jRKMYstu_QckkAQmtG_6nt1LD-G3Ry4ombuI?rtime=L2iELoa83kg)
 
 ## Import Format
 
@@ -32,7 +32,7 @@ Rows without a fiscal year or amount are skipped. Missing agency, category, vend
 
 ## Architecture
 
-- `src/data/paymentData.ts` contains the built-in Washington aggregate.
+- `src/data/paymentData.ts` contains the built-in payment aggregate.
 - `src/lib/importPayments.ts` parses uploaded Excel and CSV files.
 - `src/lib/aggregatePayments.ts` converts normalized rows into summaries and ranked entities.
 - `src/lib/insights.ts` handles question routing and briefing generation.

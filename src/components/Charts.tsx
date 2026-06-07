@@ -38,7 +38,7 @@ export function YearTrendChart({
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} role="img">
-        <title>Washington vendor payment totals for fiscal years 2022 and 2023</title>
+        <title>Vendor payment totals by fiscal year</title>
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => {
           const y = padding.top + chartHeight - tick * chartHeight;
           const value = maxTotal * tick;

@@ -9,8 +9,8 @@ import {
   FiscalYear,
   PaymentDataSource,
   PaymentLens,
+  defaultVendorPaymentSource,
   paymentLenses,
-  washingtonVendorPaymentSource,
 } from "./data/paymentData";
 import {
   QuestionId,
@@ -30,10 +30,10 @@ import {
 
 function App() {
   const [sources, setSources] = useState<PaymentDataSource[]>([
-    washingtonVendorPaymentSource,
+    defaultVendorPaymentSource,
   ]);
   const [activeSourceId, setActiveSourceId] = useState(
-    washingtonVendorPaymentSource.id,
+    defaultVendorPaymentSource.id,
   );
   const [selectedYear, setSelectedYear] = useState<FiscalYear>(2023);
   const [lens, setLens] = useState<PaymentLens>("Vendor");
@@ -45,7 +45,7 @@ function App() {
   const activeSource = useMemo(
     () =>
       sources.find((source) => source.id === activeSourceId) ??
-      washingtonVendorPaymentSource,
+      defaultVendorPaymentSource,
     [activeSourceId, sources],
   );
   const sourceYears = useMemo(
