@@ -21,6 +21,10 @@ import {
 } from "./lib/insights";
 import { importPaymentFile } from "./lib/importPayments";
 import {
+  fetchBackendDatasets,
+  uploadPaymentFileToBackend,
+} from "./lib/backendDatasets";
+import {
   formatCurrency,
   formatNumber,
   formatPercent,
@@ -41,6 +45,7 @@ function App() {
   const [plainQuestion, setPlainQuestion] = useState("");
   const [matchedIntent, setMatchedIntent] = useState("");
   const [importStatus, setImportStatus] = useState("");
+  const [backendStatus, setBackendStatus] = useState("Browser import mode");
 
   const activeSource = useMemo(
     () =>
@@ -61,6 +66,40 @@ function App() {
       setSelectedYear(sourceYears[sourceYears.length - 1]);
     }
   }, [selectedYear, sourceYears]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchBackendDatasets()
+      .then((backendSources) => {
+        if (!isMounted) {
+          return;
+        }
+
+        if (backendSources.length > 0) {
+          setSources((currentSources) => [
+            ...backendSources,
+            ...currentSources.filter(
+              (source) =>
+                !backendSources.some(
+                  (backendSource) => backendSource.id === source.id,
+                ),
+            ),
+          ]);
+        }
+
+        setBackendStatus("Backend persistence enabled");
+      })
+      .catch(() => {
+        if (isMounted) {
+          setBackendStatus("Browser import mode");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const context = useMemo(
     () => buildInsightContext(activeSource, selectedYear, lens),
@@ -106,7 +145,16 @@ function App() {
     setImportStatus(`Importing ${file.name}...`);
 
     try {
-      const importedSource = await importPaymentFile(file);
+      let persisted = true;
+      let importedSource: PaymentDataSource;
+
+      try {
+        importedSource = await uploadPaymentFileToBackend(file);
+      } catch {
+        persisted = false;
+        importedSource = await importPaymentFile(file);
+      }
+
       const importedYears = importedSource.summaries.map(
         (summary) => summary.fiscalYear,
       );
@@ -121,12 +169,16 @@ function App() {
       setQuestionId("top-vendors");
       setMatchedIntent("");
       setImportStatus(
-        `Imported ${importedSource.sourceLabel}: ${formatNumber(
+        `${persisted ? "Imported and saved" : "Imported in browser"} ${
+          importedSource.sourceLabel
+        }: ${formatNumber(
           importedSource.summaries.reduce(
             (total, summary) => total + summary.recordCount,
             0,
           ),
-        )} rows normalized.`,
+        )} rows normalized.${
+          persisted ? "" : " Start the API server to persist uploads."
+        }`,
       );
     } catch (error) {
       setImportStatus(
@@ -190,6 +242,7 @@ function App() {
             )}{" "}
             rows across {activeSource.summaries.length} fiscal years
           </span>
+          <span>{backendStatus}</span>
         </div>
         {importStatus ? <p className="import-status">{importStatus}</p> : null}
       </section>
